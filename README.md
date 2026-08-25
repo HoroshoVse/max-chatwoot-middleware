@@ -72,7 +72,7 @@ MAX API **требует** использования HTTPS для вебхук�
 Выполните этот CURL запрос из командной строки на вашем компьютере или сервере (замените капс на свои данные):
 
 ```bash
-curl -X POST https://platform-api2.max.ru/subscriptions \
+curl -k -X POST https://platform-api2.max.ru/subscriptions \
   -H "Authorization: Bearer ВАШ_MAX_BOT_TOKEN_СЮДА" \
   -H "Content-Type: application/json" \
   -d '{
