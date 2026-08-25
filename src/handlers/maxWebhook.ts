@@ -75,22 +75,33 @@ export async function handleMaxToChatwootMessage(ctxPayload: any) {
   }
 
   // 4. Handle Attachments
-  const attachmentsToUpload: { buffer: Buffer; filename: string; mimetype: string }[] = [];
-  // Basic example for photos (requires Bot File API to download)
-  // if (ctxPayload.message.photo) {
-  //   const fileId = ctxPayload.message.photo[ctxPayload.message.photo.length - 1].file_id;
-  //   const fileLink = await bot.api.getFileLink(fileId); // Example, depending on exact SDK method
-  //   const fileResponse = await axios.get(fileLink, { responseType: 'arraybuffer' });
-  //   attachmentsToUpload.push({
-  //     buffer: Buffer.from(fileResponse.data),
-  //     filename: `photo_${fileId}.jpg`,
-  //     mimetype: 'image/jpeg'
-  //   });
-  // }
+  const maxAttachments = ctxPayload.message.body?.attachments || [];
+  const chatwootAttachments = [];
+  
+  for (const att of maxAttachments) {
+    if (att.payload?.url) {
+      try {
+        const fileUrl = att.payload.url;
+        console.log(`Downloading attachment from MAX: ${fileUrl}`);
+        const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+        const buffer = Buffer.from(response.data, 'binary');
+        
+        const filename = att.filename || `file_${Date.now()}`;
+        let mimetype = 'application/octet-stream';
+        if (att.type === 'image') mimetype = 'image/jpeg';
+        else if (att.type === 'video') mimetype = 'video/mp4';
+        else if (att.type === 'audio') mimetype = 'audio/mpeg';
+        
+        chatwootAttachments.push({ buffer, filename, mimetype });
+      } catch (err) {
+        console.error('Error downloading attachment from MAX:', err);
+      }
+    }
+  }
 
   // 5. Send Message to Chatwoot
   if (conversationId) {
-    await createMessage(conversationId, text, attachmentsToUpload);
+    await createMessage(conversationId, text, chatwootAttachments);
   }
   console.log(`Message ${messageId} successfully forwarded to Chatwoot`);
 }
