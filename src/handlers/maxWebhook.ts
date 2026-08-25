@@ -13,11 +13,11 @@ export async function handleMaxToChatwootMessage(ctxPayload: any) {
     return;
   }
 
-  const messageId = ctxPayload.message.id;
-  const userId = ctxPayload.message.from?.id;
-  const text = ctxPayload.message.text || '';
-  const firstName = ctxPayload.message.from?.first_name || 'MAX User';
-  const lastName = ctxPayload.message.from?.last_name || '';
+  const messageId = ctxPayload.message.body?.mid;
+  const userId = ctxPayload.message.sender?.user_id;
+  const text = ctxPayload.message.body?.text || '';
+  const firstName = ctxPayload.message.sender?.first_name || 'MAX User';
+  const lastName = ctxPayload.message.sender?.last_name || '';
   const fullName = `${firstName} ${lastName}`.trim();
   
   if (!userId) {
