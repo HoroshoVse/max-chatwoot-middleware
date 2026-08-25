@@ -45,7 +45,7 @@ export async function handleChatwootToMaxMessage(webhookPayload: any) {
         if (att.file_type === 'image') {
           const res = await bot.api.upload.image({ source: tempFilePath }) as any;
           // Image response has photos object or token
-          token = res.token || (res.photos && Object.values(res.photos)[0]?.token);
+          token = res.token || (res.photos && (Object.values(res.photos)[0] as any)?.token);
           if (token) {
             maxAttachments.push({ type: 'image', payload: { token } });
           }
