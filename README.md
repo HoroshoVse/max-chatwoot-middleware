@@ -11,41 +11,74 @@
 - Docker & Docker Compose
 - Nginx (с настроенным SSL/TLS, например Let's Encrypt). MAX поддерживает webhooks только через HTTPS!
 
-## Инструкция по запуску
+---
 
-1. Склонируйте репозиторий на сервер.
-2. Скопируйте `.env.example` в `.env` и заполните свои данные:
-   ```bash
-   cp .env.example .env
-   nano .env
-   ```
-3. Соберите и запустите контейнеры:
-   ```bash
-   docker-compose up -d --build
-   ```
-4. Настройте Nginx. Пример конфигурации находится в `nginx.conf`.
-   Обязательно установите SSL сертификат (`certbot --nginx -d ...`).
-5. **Подписка на Webhook в MAX:**
-   После запуска и настройки HTTPS, вам необходимо зарегистрировать webhook в MAX:
-   Выполните POST-запрос с вашим токеном:
-   ```bash
-   curl -X POST https://platform-api2.max.ru/subscriptions \
-     -H "Authorization: Bearer YOUR_MAX_BOT_TOKEN" \
-     -H "Content-Type: application/json" \
-     -d '{
-           "url": "https://middleware.yourdomain.com/max-webhook",
-           "update_types": ["message_created"]
-         }'
-   ```
-6. **Подписка на Webhook в Chatwoot:**
-   Перейдите в настройки вашего API Inbox в Chatwoot и добавьте Webhook URL:
-   `https://middleware.yourdomain.com/chatwoot-webhook`
-   Активируйте события "Message Created".
+## 🛠 Подробная инструкция по запуску и настройке
 
-## Структура проекта
-- `src/index.ts`: Инициализация Express, HTTP-ручки `POST /max-webhook` и `POST /chatwoot-webhook`.
-- `src/queues/index.ts`: Настройка очередей BullMQ для балансировки нагрузки.
-- `src/handlers/maxWebhook.ts`: Обработка входящих сообщений от MAX, создание контактов в Chatwoot.
-- `src/handlers/chatwootWebhook.ts`: Перехват ответов операторов Chatwoot, отправка в MAX.
-- `src/services/db.ts`: Взаимодействие с Redis (mapping пользователей и idempotency).
-- `src/services/chatwoot.ts`: API клиент для Chatwoot (создание контакта, бесед).
+### Шаг 1. Клонирование репозитория
+Склонируйте репозиторий на ваш сервер:
+```bash
+git clone git@github.com:HoroshoVse/max-chatwoot-middleware.git
+cd max-chatwoot-middleware
+cp .env.example .env
+```
+
+### Шаг 2. Настройка файла `.env` (Где взять все данные)
+Откройте файл `.env` (например, через `nano .env`) и заполните его по этой инструкции:
+
+#### MAX Конфигурация
+* **`MAX_BOT_TOKEN`**: Токен вашего бота в мессенджере MAX. Его выдает платформа MAX при регистрации бота (в бизнес-профиле ИП/Юрлица).
+
+#### Chatwoot Конфигурация
+* **`CHATWOOT_BASE_URL`**: Полный адрес вашего сервера Chatwoot. Например: `https://chatwoot.mydomain.com`. Без слэша на конце!
+* **`CHATWOOT_ACCOUNT_ID`**: ID вашего аккаунта в Chatwoot.
+  * *Где взять:* Зайдите в Chatwoot. Посмотрите в адресную строку браузера. Вы увидите что-то вроде `.../app/accounts/1/dashboard`. В данном случае **1** — это ваш Account ID.
+* **`CHATWOOT_INBOX_ID`**: ID вашего канала (Inbox).
+  * *Как создать API Channel:* В Chatwoot перейдите в **Настройки (Settings)** -> **Входящие (Inboxes)** -> **Добавить (Add Inbox)** -> Выберите тип **API Channel**. Задайте ему имя.
+  * *Где взять ID:* После создания канала перейдите в его настройки. Посмотрите в адресную строку браузера: `.../app/accounts/1/settings/inboxes/42`. В данном случае **42** — это ваш Inbox ID.
+* **`CHATWOOT_API_TOKEN`**: Токен доступа к API Chatwoot (чтобы программа могла отправлять сообщения от имени бота/агента).
+  * *Где взять:* В самом низу левого меню Chatwoot нажмите на свою аватарку -> **Настройки профиля (Profile Settings)**. Прокрутите страницу в самый низ до раздела **Access Token**. Скопируйте строку.
+* **`CHATWOOT_WEBHOOK_SECRET`**: Секретный ключ для проверки подлинности вебхуков.
+  * *Где взять:* В Chatwoot перейдите в **Настройки (Settings)** -> **Webhooks** -> **Добавить Webhook**. 
+  * В качестве ссылки укажите адрес, где будет работать это приложение: `https://middleware.yourdomain.com/chatwoot-webhook`. 
+  * Выберите события **Message Created** (Создано сообщение). 
+  * Сохраните. После этого в списке вебхуков появится токен — это и есть ваш Secret.
+
+*(Примечание: `REDIS_URL` и `PORT` в файле `.env` менять не нужно, если вы используете стандартный docker-compose).*
+
+---
+
+### Шаг 3. Запуск приложения (Docker)
+Когда файл `.env` заполнен, выполните команду для запуска:
+```bash
+docker-compose up -d --build
+```
+Приложение запустится на порту `3000`.
+
+---
+
+### Шаг 4. Настройка Nginx и HTTPS
+MAX API **требует** использования HTTPS для вебхуков. 
+1. В репозитории есть пример файла `nginx.conf`. Скопируйте его настройки в вашу конфигурацию Nginx (обычно в `/etc/nginx/sites-available/middleware`).
+2. Запросите бесплатный SSL сертификат:
+   ```bash
+   sudo certbot --nginx -d middleware.yourdomain.com
+   ```
+
+---
+
+### Шаг 5. Регистрация Webhook в MAX
+Чтобы MAX начал присылать сообщения пользователей в ваше Middleware, вам нужно сказать MAX, куда их отправлять.
+Выполните этот CURL запрос из командной строки на вашем компьютере или сервере (замените капс на свои данные):
+
+```bash
+curl -X POST https://platform-api2.max.ru/subscriptions \
+  -H "Authorization: Bearer ВАШ_MAX_BOT_TOKEN_СЮДА" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "url": "https://middleware.yourdomain.com/max-webhook",
+        "update_types": ["message_created"]
+      }'
+```
+
+🎉 **Готово!** Теперь, если кто-то напишет боту в MAX, сообщение попадет в Chatwoot (в API Channel), а ответ оператора вернется пользователю в MAX.
