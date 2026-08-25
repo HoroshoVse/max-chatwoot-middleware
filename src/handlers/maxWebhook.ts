@@ -8,12 +8,22 @@ import { config } from '../config';
 const bot = new Bot(config.maxBotToken);
 
 export async function handleMaxToChatwootMessage(ctxPayload: any) {
+  if (!ctxPayload || !ctxPayload.message) {
+    console.log('Skipping webhook: No message object found in payload', ctxPayload);
+    return;
+  }
+
   const messageId = ctxPayload.message.id;
-  const userId = ctxPayload.message.from.id;
+  const userId = ctxPayload.message.from?.id;
   const text = ctxPayload.message.text || '';
-  const firstName = ctxPayload.message.from.first_name || 'MAX User';
-  const lastName = ctxPayload.message.from.last_name || '';
+  const firstName = ctxPayload.message.from?.first_name || 'MAX User';
+  const lastName = ctxPayload.message.from?.last_name || '';
   const fullName = `${firstName} ${lastName}`.trim();
+  
+  if (!userId) {
+    console.log('Skipping webhook: No userId found in payload', ctxPayload);
+    return;
+  }
   
   // 1. Idempotency check
   const isNew = await checkAndSetIdempotency(messageId);

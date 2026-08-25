@@ -14,10 +14,12 @@ const bot = new Bot(config.maxBotToken);
 app.post('/max-webhook', async (req, res) => {
   try {
     const payload = req.body;
-    // Basic check
-    if (payload.event === 'message_created') {
-      await chatwootInboundQueue.add('max-message', { ctxPayload: payload });
-    }
+    console.log("=== INCOMING MAX WEBHOOK ===");
+    console.log(JSON.stringify(payload, null, 2));
+
+    // For debugging, we add everything to the queue so we can see what happens in maxWebhook.ts
+    await chatwootInboundQueue.add('max-message', { ctxPayload: payload });
+    
     res.status(200).send('OK');
   } catch (err) {
     console.error('Error handling MAX webhook', err);
