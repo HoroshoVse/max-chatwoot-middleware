@@ -1,5 +1,5 @@
 import express from 'express';
-import { Bot, webhookCallback } from '@maxhub/max-bot-api';
+import { Bot } from '@maxhub/max-bot-api';
 import { config } from './config';
 import { chatwootInboundQueue, maxOutboundQueue } from './queues';
 

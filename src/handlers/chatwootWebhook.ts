@@ -20,7 +20,7 @@ export async function handleChatwootToMaxMessage(webhookPayload: any) {
   try {
     // Send text message
     if (content) {
-      await bot.api.sendMessage(maxUserId, content);
+      await (bot.api as any).sendMessage(maxUserId, content);
       console.log(`Sent message to MAX user ${maxUserId}`);
     }
 
