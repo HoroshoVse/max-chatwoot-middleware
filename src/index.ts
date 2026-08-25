@@ -30,13 +30,15 @@ app.post('/max-webhook', async (req, res) => {
 // === Chatwoot Webhook Endpoint ===
 app.post('/chatwoot-webhook', async (req, res) => {
   try {
-    // Optionally: verify x-hub-signature from req.headers['x-hub-signature']
-    // using crypto and config.chatwoot.webhookSecret
-
     const payload = req.body;
+    
+    // Log incoming chatwoot webhooks
     if (payload.event === 'message_created' && payload.message_type === 'outgoing') {
+      console.log("=== INCOMING CHATWOOT WEBHOOK (OUTGOING MESSAGE) ===");
+      console.log(JSON.stringify(payload, null, 2));
       await maxOutboundQueue.add('chatwoot-message', { webhookPayload: payload });
     }
+    
     res.status(200).send('OK');
   } catch (err) {
     console.error('Error handling Chatwoot webhook', err);
