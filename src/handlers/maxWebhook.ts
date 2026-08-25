@@ -91,7 +91,23 @@ export async function handleMaxToChatwootMessage(ctxPayload: any) {
 
   // 5. Send Message to Chatwoot
   if (conversationId) {
-    await createMessage(conversationId, text, chatwootAttachments);
+    try {
+      await createMessage(conversationId, text || '', chatwootAttachments.length > 0 ? chatwootAttachments : undefined);
+      console.log(`Message ${messageId} successfully forwarded to Chatwoot`);
+    } catch (err: any) {
+      if (err.response && err.response.status === 404) {
+        console.warn(`Conversation ${conversationId} not found in Chatwoot (404). Creating a new one...`);
+        if (contactId) {
+          conversationId = await createConversation(contactId, `max-${stringUserId}`);
+          if (conversationId) {
+            await setConversationMapping(stringUserId, conversationId);
+            await createMessage(conversationId, text || '', chatwootAttachments.length > 0 ? chatwootAttachments : undefined);
+            console.log(`Message ${messageId} successfully forwarded to NEW Chatwoot conversation ${conversationId}`);
+          }
+        }
+      } else {
+        throw err; // throw for BullMQ retry
+      }
+    }
   }
-  console.log(`Message ${messageId} successfully forwarded to Chatwoot`);
 }
