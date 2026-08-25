@@ -23,6 +23,16 @@ export async function searchContact(identifier: string) {
   }
 }
 
+export async function getContactConversations(contactId: number) {
+  try {
+    const res = await client.get(`/contacts/${contactId}/conversations`);
+    return res.data.payload;
+  } catch (err) {
+    console.error('Error getting contact conversations from Chatwoot', err);
+    return [];
+  }
+}
+
 export async function createContact(identifier: string, name: string, avatarUrl?: string) {
   try {
     const payload: any = {

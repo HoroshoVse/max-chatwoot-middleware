@@ -1,7 +1,7 @@
 import { Bot } from '@maxhub/max-bot-api';
 import axios from 'axios';
-import { getContactMapping, setContactMapping, getConversationMapping, setConversationMapping, checkAndSetIdempotency } from '../services/db';
-import { searchContact, createContact, createConversation, createMessage } from '../services/chatwoot';
+import { checkAndSetIdempotency, getContactMapping, setContactMapping, getConversationMapping, setConversationMapping } from '../services/db';
+import { createContact, createConversation, createMessage, searchContact, getContactConversations } from '../services/chatwoot';
 import { config } from '../config';
 
 // Reusable Bot instance for downloading files if needed
@@ -55,8 +55,20 @@ export async function handleMaxToChatwootMessage(ctxPayload: any) {
   let conversationId = await getConversationMapping(stringUserId);
   if (!conversationId) {
     if (!contactId) return; // safety check
-    // Create new conversation in Chatwoot
-    conversationId = await createConversation(contactId, `max-${stringUserId}`);
+    
+    // Check if the contact already has an open conversation in Chatwoot
+    const existingConversations = await getContactConversations(contactId);
+    const activeConversation = existingConversations.find((c: any) => c.status === 'open' || c.status === 'pending');
+    
+    if (activeConversation) {
+      conversationId = activeConversation.id;
+    } else if (existingConversations.length > 0) {
+      conversationId = existingConversations[0].id;
+    } else {
+      // Create new conversation in Chatwoot ONLY if no conversations exist
+      conversationId = await createConversation(contactId, `max-${stringUserId}`);
+    }
+
     if (conversationId) {
       await setConversationMapping(stringUserId, conversationId);
     }
