@@ -9,9 +9,12 @@ const bot = new Bot(config.maxBotToken);
 
 export async function handleChatwootToMaxMessage(webhookPayload: any) {
   // We only care about outgoing messages (from agent/bot to user)
-  if (webhookPayload.event !== 'message_created') return;
-  if (webhookPayload.message_type !== 'outgoing') return;
-
+  if (webhookPayload.event !== 'message_created') {
+    return;
+  }
+  if (webhookPayload.message_type !== 'outgoing' && webhookPayload.message_type !== 'template') {
+    return; // Ignore incoming messages or activity logs
+  }
   const contact = webhookPayload.conversation?.meta?.sender;
   if (!contact || !contact.identifier) {
     console.log('No contact identifier found, cannot send to MAX');

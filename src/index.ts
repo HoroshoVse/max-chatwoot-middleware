@@ -32,11 +32,13 @@ app.post('/chatwoot-webhook', async (req, res) => {
   try {
     const payload = req.body;
     
-    // Log incoming chatwoot webhooks
-    if (payload.event === 'message_created' && payload.message_type === 'outgoing') {
-      console.log("=== INCOMING CHATWOOT WEBHOOK (OUTGOING MESSAGE) ===");
-      console.log(JSON.stringify(payload, null, 2));
-      await maxOutboundQueue.add('chatwoot-message', { webhookPayload: payload });
+    // Process chatwoot webhooks (outgoing and template messages)
+    if (payload.event === 'message_created') {
+      if (payload.message_type === 'outgoing' || payload.message_type === 'template') {
+        console.log(`=== INCOMING CHATWOOT WEBHOOK (${payload.message_type.toUpperCase()} MESSAGE) ===`);
+        console.log(JSON.stringify(payload, null, 2));
+        await maxOutboundQueue.add('chatwoot-message', { webhookPayload: payload });
+      }
     }
     
     res.status(200).send('OK');
